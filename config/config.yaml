@@ -1,0 +1,6 @@
+env: local # local | prod
+
+logger:
+  dir: logs
+  file_info_name: info.log
+  file_debug_name: debug.log
