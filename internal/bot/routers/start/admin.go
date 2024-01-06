@@ -8,7 +8,7 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *RouterStart) CheckStartAdmin(msg tgbotapi.Update) bool {
+func (r *RouterStart) CheckStartAdmin(msg tgbotapi.Update) bool {
 	var tgID int64
 	var checkDataOrMsg bool
 
@@ -20,25 +20,25 @@ func (s *RouterStart) CheckStartAdmin(msg tgbotapi.Update) bool {
 		tgID = msg.CallbackQuery.Message.Chat.ID
 		checkDataOrMsg = msg.CallbackQuery.Data == commands.MsgCommandStart
 	}
-	userShow, _ := s.userGetter.GetUserByTgID(tgID)
+	userShow, _ := r.userGetter.GetUserByTgID(tgID)
 
 	return checkDataOrMsg && userShow.IsAdmin
 }
 
-func (s *RouterStart) StartAdmin(msg *tgbotapi.Message) {
-	userShow, _ := s.userGetter.GetUserByTgID(msg.Chat.ID)
+func (r *RouterStart) StartAdmin(msg *tgbotapi.Message) {
+	userShow, _ := r.userGetter.GetUserByTgID(msg.Chat.ID)
 
 	msgSend := tgbotapi.NewMessage(msg.Chat.ID, messages.MessageStartAdmin)
 
 	msgSend.ReplyMarkup = inline.StartKB(userShow.IsAdmin, userShow.IsModer)
 
-	_, err := s.b.Send(msgSend)
+	_, err := r.b.Send(msgSend)
 	if err != nil {
-		s.log.Error("Failed to send message", zap.Error(err))
+		r.log.Error("Failed to send message", zap.Error(err))
 	}
 }
 
-func (s *RouterStart) isAdmin(admins []int64, telegramID int64) bool {
+func (r *RouterStart) isAdmin(admins []int64, telegramID int64) bool {
 	for _, adminID := range admins {
 		if adminID == telegramID {
 			return true

@@ -1,4 +1,4 @@
-package schedule
+package panel
 
 import (
 	"bot/internal/bot/keyboards/inline"
@@ -7,26 +7,29 @@ import (
 	"go.uber.org/zap"
 )
 
-type RouterSchedule struct {
+type RouterAdminPanel struct {
 	b   *tgbotapi.BotAPI
 	log *logging.Logger
 }
 
-func New(b *tgbotapi.BotAPI, log *logging.Logger) *RouterSchedule {
-	return &RouterSchedule{
+func New(b *tgbotapi.BotAPI, log *logging.Logger) *RouterAdminPanel {
+	return &RouterAdminPanel{
 		b:   b,
 		log: log,
 	}
 }
 
-func (r *RouterSchedule) CheckSchedule(callback *tgbotapi.CallbackQuery) bool {
+func (r *RouterAdminPanel) CheckAdminPanel(
+	callback *tgbotapi.CallbackQuery,
+) bool {
 	if callback == nil {
 		return false
 	}
-	return callback.Data == inline.DataSchedule
+
+	return callback.Data == inline.DataAdminPanel
 }
 
-func (r *RouterSchedule) ShowSchedule(callback *tgbotapi.CallbackQuery) {
+func (r *RouterAdminPanel) ShowAdminPanel(callback *tgbotapi.CallbackQuery) {
 	newCallback := tgbotapi.NewCallback(callback.ID, "")
 	_, err := r.b.Request(newCallback)
 	if err != nil {
@@ -36,11 +39,21 @@ func (r *RouterSchedule) ShowSchedule(callback *tgbotapi.CallbackQuery) {
 	msgSend := tgbotapi.NewEditMessageTextAndMarkup(
 		callback.Message.Chat.ID,
 		callback.Message.MessageID,
-		inline.MsgDataSchedule, inline.ScheduleKB,
+		inline.MsgDataAdminPanel, inline.AdminPanelKB,
 	)
 
 	_, err = r.b.Send(msgSend)
 	if err != nil {
 		r.log.Error("Failed to send message", zap.Error(err))
 	}
+}
+
+func (r *RouterAdminPanel) CheckBackToStartMenu(
+	callback *tgbotapi.CallbackQuery,
+) bool {
+	if callback == nil {
+		return false
+	}
+
+	return callback.Data == inline.DataBackToStartMenu
 }

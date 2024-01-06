@@ -2,6 +2,7 @@ package bot
 
 import (
 	"bot/internal/bot/middlewares"
+	"bot/internal/bot/routers/admin/panel"
 	"bot/internal/bot/routers/start"
 	"bot/internal/bot/routers/user/schedule"
 	"bot/internal/config"
@@ -20,11 +21,18 @@ type Routers struct {
 type StartRouter interface {
 	CheckStartAdmin(msg tgbotapi.Update) bool
 	StartAdmin(msg *tgbotapi.Message)
+
 	CheckStart(msg *tgbotapi.Message) bool
-	Start(msg *tgbotapi.Message)
+	Start(msg *tgbotapi.Message, isAdmin bool, isModer bool)
+
+	MainMenu(msg *tgbotapi.CallbackQuery, isAdmin bool, isModer bool)
 }
 
 type AdminRouters interface {
+	CheckAdminPanel(callback *tgbotapi.CallbackQuery) bool
+	CheckBackToStartMenu(callback *tgbotapi.CallbackQuery) bool
+
+	ShowAdminPanel(callback *tgbotapi.CallbackQuery)
 }
 
 type UserRouters interface {
@@ -48,7 +56,8 @@ func initRouters(
 	scheduleRouter := schedule.New(b, log)
 	r.userRouters = UserRouters(scheduleRouter)
 
-	r.adminRouters = startRouter
+	adminRouter := panel.New(b, log)
+	r.adminRouters = AdminRouters(adminRouter)
 
 	return r
 }
@@ -73,15 +82,24 @@ func checkUpdates(
 	mv *middlewares.Middlewares,
 ) {
 	for update := range updates {
-		mv.MvAddToDB.AddToDB(update)
+		isAdmin, isModer := mv.MvAddToDB.AddToDB(update)
 		mv.MvLog.UpdateInfo(update)
 		switch {
 		case r.startRouter.CheckStartAdmin(update):
 			go r.startRouter.StartAdmin(update.Message)
+
 		case r.startRouter.CheckStart(update.Message):
-			go r.startRouter.Start(update.Message)
+			go r.startRouter.Start(update.Message, isAdmin, isModer)
+
+		case r.adminRouters.CheckAdminPanel(update.CallbackQuery):
+			go r.adminRouters.ShowAdminPanel(update.CallbackQuery)
+
+		case r.adminRouters.CheckBackToStartMenu(update.CallbackQuery):
+			go r.startRouter.MainMenu(update.CallbackQuery, isAdmin, isModer)
+
 		case r.userRouters.CheckSchedule(update.CallbackQuery):
 			go r.userRouters.ShowSchedule(update.CallbackQuery)
+
 		default:
 			continue
 		}

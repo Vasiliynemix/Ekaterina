@@ -28,7 +28,7 @@ func New(log *logging.Logger, userSaver UserSaver, cfg *config.Config) *AddToDBM
 	}
 }
 
-func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) {
+func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) (bool, bool) {
 	var telegramID int64
 	var userName string
 
@@ -42,10 +42,10 @@ func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) {
 		userName = msg.CallbackQuery.From.UserName
 	}
 
-	_, err := l.userSaver.GetUserByTgID(telegramID)
+	userShow, err := l.userSaver.GetUserByTgID(telegramID)
 
 	if err == nil {
-		return
+		return userShow.IsAdmin, userShow.IsModer
 	}
 
 	isAdmin := false
@@ -68,4 +68,6 @@ func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) {
 	_ = l.userSaver.AddUser(userAdd)
 
 	l.log.Info("User added to DB", zap.Uint("telegramID", uint(telegramID)))
+
+	return userShow.IsAdmin, userShow.IsModer
 }

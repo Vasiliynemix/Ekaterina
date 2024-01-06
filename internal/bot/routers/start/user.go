@@ -8,16 +8,38 @@ import (
 	"go.uber.org/zap"
 )
 
-func (s *RouterStart) CheckStart(msg *tgbotapi.Message) bool {
+func (r *RouterStart) CheckStart(msg *tgbotapi.Message) bool {
 	return msg != nil && msg.Command() == commands.MsgCommandStart
 }
 
-func (s *RouterStart) Start(msg *tgbotapi.Message) {
+func (r *RouterStart) Start(msg *tgbotapi.Message, isAdmin bool, isModer bool) {
 	msgSend := tgbotapi.NewMessage(msg.Chat.ID, messages.MessageStartUser)
-	msgSend.ReplyMarkup = inline.StartKB(false, false)
+	msgSend.ReplyMarkup = inline.StartKB(isAdmin, isModer)
 
-	_, err := s.b.Send(msgSend)
+	_, err := r.b.Send(msgSend)
 	if err != nil {
-		s.log.Error("Failed to send message", zap.Error(err))
+		r.log.Error("Failed to send message", zap.Error(err))
+	}
+}
+
+func (r *RouterStart) MainMenu(msg *tgbotapi.CallbackQuery, isAdmin bool, isModer bool) {
+	var msgText string
+
+	if isAdmin || isModer {
+		msgText = messages.MessageStartAdmin
+	} else {
+		msgText = messages.MessageStartUser
+	}
+
+	msgSend := tgbotapi.NewEditMessageTextAndMarkup(
+		msg.Message.Chat.ID,
+		msg.Message.MessageID,
+		msgText,
+		inline.StartKB(isAdmin, isModer),
+	)
+
+	_, err := r.b.Send(msgSend)
+	if err != nil {
+		r.log.Error("Failed to send message", zap.Error(err))
 	}
 }
