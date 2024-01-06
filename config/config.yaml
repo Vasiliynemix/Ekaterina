@@ -8,3 +8,13 @@ logger:
 
 bot:
   time_out: 60
+  admins: 1579726859,5254091301
+
+db:
+  migration_dir_name: migrator
+  driver: postgres
+  ssl_mode: disable
+  pool:
+    max_idle_conn: 10
+    max_open_conn: 30
+    idle_timeout: 300s

@@ -30,7 +30,7 @@ func (l *LoggerMv) UpdateInfo(msg tgbotapi.Update) {
 			"Update info",
 			zap.Int("chat_id", int(msg.CallbackQuery.Message.Chat.ID)),
 			zap.String("username", msg.CallbackQuery.From.UserName),
-			zap.String("text", msg.CallbackQuery.Data),
+			zap.String("data", msg.CallbackQuery.Data),
 		)
 	}
 }

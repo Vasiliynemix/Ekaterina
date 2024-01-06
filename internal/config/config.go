@@ -6,20 +6,44 @@ import (
 	"os"
 	"path/filepath"
 	"runtime"
+	"strconv"
+	"strings"
+	"time"
 )
 
 type Config struct {
-	RootPath string
 	Env      string       `yaml:"env" env-required:"true"`
 	Debug    bool         `yaml:"debug"`
 	Log      LoggerConfig `yaml:"logger"`
+	Bot      BotConfig    `yaml:"bot"`
+	DB       DBConfig     `yaml:"db"`
+	RootPath string
 	Paths    PathsConfig
-	Bot      BotConfig `yaml:"bot"`
 }
 
 type BotConfig struct {
-	Token   string `json:"-"`
-	TimeOut int    `yaml:"time_out" env-required:"true"`
+	Token     string  `json:"-"`
+	TimeOut   int     `yaml:"time_out" env-required:"true"`
+	AdminsStr string  `yaml:"admins" env-required:"true" json:"-"`
+	Admins    []int64 `yaml:"-" json:"-"`
+}
+
+type DBConfig struct {
+	MigrationDirName string       `yaml:"migration_dir_name" env-required:"true"`
+	Driver           string       `yaml:"driver" env-required:"true"`
+	Password         string       `yaml:"password" json:"-"`
+	SslMode          string       `yaml:"ssl_mode" env-required:"true"`
+	Pool             DBPoolConfig `yaml:"pool"`
+	Host             string
+	Port             string
+	User             string
+	DbName           string
+}
+
+type DBPoolConfig struct {
+	MaxIdleConns int           `yaml:"max_idle_conns"`
+	MaxOpenConns int           `yaml:"max_open_conns"`
+	IdleTimeout  time.Duration `yaml:"idle_timeout"`
 }
 
 type LoggerConfig struct {
@@ -42,6 +66,13 @@ func (c *Config) ValidateEnv() error {
 	}
 }
 
+func (d *DBConfig) ConnString() string {
+	return fmt.Sprintf(
+		"host=%s port=%s user=%s dbname=%s password=%s sslmode=%s",
+		d.Host, d.Port, d.User, d.DbName, d.Password, d.SslMode,
+	)
+}
+
 func MustLoad(levelsUp int) *Config {
 	mustLoadEnvConfig()
 
@@ -56,10 +87,10 @@ func MustLoad(levelsUp int) *Config {
 
 	pathToCfg := getPath(rootPath, cfgEnv.Dir, cfgEnv.FileName)
 
-	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot)
+	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot, &cfgEnv.DB)
 }
 
-func mustLoadCfg(rootPath string, pathToCfg string, botC *EnvBotConfig) *Config {
+func mustLoadCfg(rootPath string, pathToCfg string, botC *EnvBotConfig, db *EnvDBConfig) *Config {
 	var cfg Config
 
 	err := cleanenv.ReadConfig(pathToCfg, &cfg)
@@ -76,9 +107,26 @@ func mustLoadCfg(rootPath string, pathToCfg string, botC *EnvBotConfig) *Config 
 	cfg.Paths.ConfigDebugPath = getPath(rootPath, cfg.Log.Dir, cfg.Log.FileDebugName)
 	cfg.Paths.ConfigInfoPath = getPath(rootPath, cfg.Log.Dir, cfg.Log.FIleInfoName)
 
-	addEnvInConfig(&cfg, botC)
+	cfg.Bot.Admins = parseAdmins(cfg.Bot.AdminsStr)
+
+	addEnvInConfig(&cfg, botC, db)
 
 	return &cfg
+}
+
+func parseAdmins(adminsStr string) []int64 {
+	adminsSlice := strings.Split(adminsStr, ",")
+	admins := make([]int64, 0, len(adminsSlice))
+
+	for _, admin := range adminsSlice {
+		adminID, err := strconv.ParseInt(strings.TrimSpace(admin), 10, 64)
+		if err != nil {
+			panic(err)
+		}
+		admins = append(admins, adminID)
+	}
+
+	return admins
 }
 
 func createPath(path string, fileName string) {
