@@ -1,10 +1,17 @@
 package config
 
-import "github.com/joho/godotenv"
+import (
+	"github.com/joho/godotenv"
+)
 
 type EnvConfig struct {
 	Dir      string `env:"CFG_DIR" env-required:"true"`
 	FileName string `env:"CFG_FILENAME" env-required:"true"`
+	Bot      EnvBotConfig
+}
+
+type EnvBotConfig struct {
+	Token string `env:"BOT_TOKEN" env-required:"true"`
 }
 
 func mustLoadEnvConfig() {
@@ -14,6 +21,6 @@ func mustLoadEnvConfig() {
 	}
 }
 
-func addEnvInConfig(cfg *Config) {
-
+func addEnvInConfig(cfg *Config, botC *EnvBotConfig) {
+	cfg.Bot.Token = botC.Token
 }

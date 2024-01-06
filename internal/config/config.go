@@ -11,8 +11,15 @@ import (
 type Config struct {
 	RootPath string
 	Env      string       `yaml:"env" env-required:"true"`
+	Debug    bool         `yaml:"debug"`
 	Log      LoggerConfig `yaml:"logger"`
 	Paths    PathsConfig
+	Bot      BotConfig `yaml:"bot"`
+}
+
+type BotConfig struct {
+	Token   string `json:"-"`
+	TimeOut int    `yaml:"time_out" env-required:"true"`
 }
 
 type LoggerConfig struct {
@@ -49,10 +56,10 @@ func MustLoad(levelsUp int) *Config {
 
 	pathToCfg := getPath(rootPath, cfgEnv.Dir, cfgEnv.FileName)
 
-	return mustLoadCfg(rootPath, pathToCfg)
+	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot)
 }
 
-func mustLoadCfg(rootPath string, pathToCfg string) *Config {
+func mustLoadCfg(rootPath string, pathToCfg string, botC *EnvBotConfig) *Config {
 	var cfg Config
 
 	err := cleanenv.ReadConfig(pathToCfg, &cfg)
@@ -69,7 +76,7 @@ func mustLoadCfg(rootPath string, pathToCfg string) *Config {
 	cfg.Paths.ConfigDebugPath = getPath(rootPath, cfg.Log.Dir, cfg.Log.FileDebugName)
 	cfg.Paths.ConfigInfoPath = getPath(rootPath, cfg.Log.Dir, cfg.Log.FIleInfoName)
 
-	addEnvInConfig(&cfg)
+	addEnvInConfig(&cfg, botC)
 
 	return &cfg
 }

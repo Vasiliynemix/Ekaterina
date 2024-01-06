@@ -1,6 +1,10 @@
 env: local # local | prod
+debug: false # true | false
 
 logger:
   dir: logs
   file_info_name: info.log
   file_debug_name: debug.log
+
+bot:
+  time_out: 60

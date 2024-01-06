@@ -1,8 +1,10 @@
 package main
 
 import (
+	"bot/internal/bot"
 	"bot/internal/config"
 	"bot/pkg/logging"
+	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	"os"
 	"os/signal"
@@ -18,9 +20,18 @@ func main() {
 
 	log := setupLogger(cfg.Env, config.StructDateFormat, cfg.Paths.ConfigInfoPath, cfg.Paths.ConfigDebugPath)
 
+	log.Debug("config: ", zap.Any("config", cfg))
+	log.Info("Initializing logger and config...")
 	log.Debug("Debug mode on...")
 
-	log.Info("Initializing logger and config...")
+	b, err := tgbotapi.NewBotAPI(cfg.Bot.Token)
+	if err != nil {
+		panic(err)
+	}
+
+	b.Debug = cfg.Debug
+
+	go bot.Run(b, cfg, log)
 
 	// Gracefully shutdown
 	stop := make(chan os.Signal, 1)
