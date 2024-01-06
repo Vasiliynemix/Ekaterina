@@ -3,6 +3,7 @@ package start
 import (
 	"bot/internal/bot/keyboards/inline"
 	"bot/internal/bot/lexicon/commands"
+	"bot/internal/bot/lexicon/messages"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -12,8 +13,8 @@ func (s *RouterStart) CheckStart(msg *tgbotapi.Message) bool {
 }
 
 func (s *RouterStart) Start(msg *tgbotapi.Message) {
-	msgSend := tgbotapi.NewMessage(msg.Chat.ID, "Hello!")
-	msgSend.ReplyMarkup = inline.StartKB
+	msgSend := tgbotapi.NewMessage(msg.Chat.ID, messages.MessageStartUser)
+	msgSend.ReplyMarkup = inline.StartKB(false, false)
 
 	_, err := s.b.Send(msgSend)
 	if err != nil {

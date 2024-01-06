@@ -3,6 +3,7 @@ package start
 import (
 	"bot/internal/bot/keyboards/inline"
 	"bot/internal/bot/lexicon/commands"
+	"bot/internal/bot/lexicon/messages"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -25,9 +26,11 @@ func (s *RouterStart) CheckStartAdmin(msg tgbotapi.Update) bool {
 }
 
 func (s *RouterStart) StartAdmin(msg *tgbotapi.Message) {
-	msgSend := tgbotapi.NewMessage(msg.Chat.ID, "Hello! you are admin!")
+	userShow, _ := s.userGetter.GetUserByTgID(msg.Chat.ID)
 
-	msgSend.ReplyMarkup = inline.StartKB
+	msgSend := tgbotapi.NewMessage(msg.Chat.ID, messages.MessageStartAdmin)
+
+	msgSend.ReplyMarkup = inline.StartKB(userShow.IsAdmin, userShow.IsModer)
 
 	_, err := s.b.Send(msgSend)
 	if err != nil {
