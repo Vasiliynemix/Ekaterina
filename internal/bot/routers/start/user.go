@@ -22,7 +22,15 @@ func (r *RouterStart) Start(msg *tgbotapi.Message, isAdmin bool, isModer bool) {
 	}
 }
 
-func (r *RouterStart) MainMenu(msg *tgbotapi.CallbackQuery, isAdmin bool, isModer bool) {
+func (r *RouterStart) CheckMainMenu(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+
+	return callback.Data == inline.DataMainMenu
+}
+
+func (r *RouterStart) MenuMain(callback *tgbotapi.CallbackQuery, isAdmin bool, isModer bool) {
 	var msgText string
 
 	if isAdmin || isModer {
@@ -32,8 +40,8 @@ func (r *RouterStart) MainMenu(msg *tgbotapi.CallbackQuery, isAdmin bool, isMode
 	}
 
 	msgSend := tgbotapi.NewEditMessageTextAndMarkup(
-		msg.Message.Chat.ID,
-		msg.Message.MessageID,
+		callback.Message.Chat.ID,
+		callback.Message.MessageID,
 		msgText,
 		inline.StartKB(isAdmin, isModer),
 	)

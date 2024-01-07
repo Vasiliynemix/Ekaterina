@@ -19,13 +19,15 @@ type Routers struct {
 }
 
 type StartRouter interface {
+	CheckMainMenu(callback *tgbotapi.CallbackQuery) bool
+
+	MenuMain(callback *tgbotapi.CallbackQuery, isAdmin bool, isModer bool)
+
 	CheckStartAdmin(msg tgbotapi.Update) bool
 	StartAdmin(msg *tgbotapi.Message)
 
 	CheckStart(msg *tgbotapi.Message) bool
 	Start(msg *tgbotapi.Message, isAdmin bool, isModer bool)
-
-	MainMenu(msg *tgbotapi.CallbackQuery, isAdmin bool, isModer bool)
 }
 
 type AdminRouters interface {
@@ -38,6 +40,14 @@ type AdminRouters interface {
 type UserRouters interface {
 	CheckSchedule(callback *tgbotapi.CallbackQuery) bool
 	ShowSchedule(callback *tgbotapi.CallbackQuery)
+
+	CheckScheduleWeekEven(callback *tgbotapi.CallbackQuery) bool
+	ScheduleWeekEven(callback *tgbotapi.CallbackQuery)
+
+	CheckScheduleWeekOdd(callback *tgbotapi.CallbackQuery) bool
+	ScheduleWeekOdd(callback *tgbotapi.CallbackQuery)
+
+	CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuery) bool
 }
 
 func initRouters(
@@ -91,14 +101,26 @@ func checkUpdates(
 		case r.startRouter.CheckStart(update.Message):
 			go r.startRouter.Start(update.Message, isAdmin, isModer)
 
+		case r.startRouter.CheckMainMenu(update.CallbackQuery):
+			go r.startRouter.MenuMain(update.CallbackQuery, isAdmin, isModer)
+
 		case r.adminRouters.CheckAdminPanel(update.CallbackQuery):
 			go r.adminRouters.ShowAdminPanel(update.CallbackQuery)
 
 		case r.adminRouters.CheckBackToStartMenu(update.CallbackQuery):
-			go r.startRouter.MainMenu(update.CallbackQuery, isAdmin, isModer)
+			go r.startRouter.MenuMain(update.CallbackQuery, isAdmin, isModer)
+
+		case r.userRouters.CheckBackToScheduleMenu(update.CallbackQuery):
+			go r.userRouters.ShowSchedule(update.CallbackQuery)
 
 		case r.userRouters.CheckSchedule(update.CallbackQuery):
 			go r.userRouters.ShowSchedule(update.CallbackQuery)
+
+		case r.userRouters.CheckScheduleWeekEven(update.CallbackQuery):
+			go r.userRouters.ScheduleWeekEven(update.CallbackQuery)
+
+		case r.userRouters.CheckScheduleWeekOdd(update.CallbackQuery):
+			go r.userRouters.ScheduleWeekOdd(update.CallbackQuery)
 
 		default:
 			continue
