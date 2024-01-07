@@ -16,6 +16,6 @@ type Middlewares struct {
 func InitMiddlewares(log *logging.Logger, db *db.DB, cfg *config.Config) *Middlewares {
 	return &Middlewares{
 		MvLog:     mvLogger.New(log),
-		MvAddToDB: mvAddToDB.New(log, db.User, cfg),
+		MvAddToDB: mvAddToDB.New(log, db.User, db.Schedule, cfg),
 	}
 }

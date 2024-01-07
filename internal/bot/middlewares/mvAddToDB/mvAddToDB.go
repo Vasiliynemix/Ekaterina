@@ -10,9 +10,10 @@ import (
 )
 
 type AddToDBMv struct {
-	log       *logging.Logger
-	cfg       *config.Config
-	userSaver UserSaver
+	log           *logging.Logger
+	cfg           *config.Config
+	userSaver     UserSaver
+	scheduleSaver ScheduleSaver
 }
 
 type UserSaver interface {
@@ -20,11 +21,21 @@ type UserSaver interface {
 	GetUserByTgID(telegramID int64) (*userRepo.UserShow, error)
 }
 
-func New(log *logging.Logger, userSaver UserSaver, cfg *config.Config) *AddToDBMv {
+type ScheduleSaver interface {
+	AddSchedule(TelegramID int64) error
+}
+
+func New(
+	log *logging.Logger,
+	userSaver UserSaver,
+	scheduleSaver ScheduleSaver,
+	cfg *config.Config,
+) *AddToDBMv {
 	return &AddToDBMv{
-		log:       log,
-		userSaver: userSaver,
-		cfg:       cfg,
+		log:           log,
+		userSaver:     userSaver,
+		scheduleSaver: scheduleSaver,
+		cfg:           cfg,
 	}
 }
 
@@ -66,6 +77,8 @@ func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) (bool, bool) {
 	}
 
 	_ = l.userSaver.AddUser(userAdd)
+
+	_ = l.scheduleSaver.AddSchedule(telegramID)
 
 	l.log.Info("User added to DB", zap.Uint("telegramID", uint(telegramID)))
 

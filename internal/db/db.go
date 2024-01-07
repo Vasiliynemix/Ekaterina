@@ -1,21 +1,25 @@
 package db
 
 import (
+	"bot/internal/db/repositories/sheduleRepo"
 	"bot/internal/db/repositories/userRepo"
 	"bot/pkg/logging"
 	"gorm.io/gorm"
 )
 
 type DB struct {
-	log  *logging.Logger
-	User *userRepo.UserRepo
+	log      *logging.Logger
+	User     *userRepo.UserRepo
+	Schedule *sheduleRepo.ScheduleRepo
 }
 
 func New(db *gorm.DB, log *logging.Logger) *DB {
 	user := userRepo.New(db, log)
+	schedule := sheduleRepo.New(db, log)
 
 	return &DB{
-		log:  log,
-		User: user,
+		log:      log,
+		User:     user,
+		Schedule: schedule,
 	}
 }

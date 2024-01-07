@@ -73,7 +73,7 @@ func initRouters(
 	startRouter := start.New(b, log, &cfg.Bot, db.User)
 	r.startRouter = startRouter
 
-	scheduleRouter := schedule.New(b, log)
+	scheduleRouter := schedule.New(b, log, db.Schedule)
 	r.userRouters = UserRouters(scheduleRouter)
 
 	adminRouter := panel.New(b, log)

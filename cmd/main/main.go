@@ -52,7 +52,7 @@ func main() {
 
 func connToDB(cfg *config.Config, log *logging.Logger) *gorm.DB {
 	dsn := cfg.DB.ConnString()
-	log.Debug("dsn", zap.String("dsn", dsn))
+
 	dbConn, err := gorm.Open(postgres.Open(dsn), &gorm.Config{})
 	if err != nil {
 		log.Fatal("failed to connect database", zap.Error(err))

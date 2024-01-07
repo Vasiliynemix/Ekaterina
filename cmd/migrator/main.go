@@ -32,5 +32,53 @@ func runMigrations(db *gorm.DB) error {
 		}
 		fmt.Println("user table created")
 	}
+
+	ok = db.Migrator().HasTable(&models.Schedule{})
+	if !ok {
+		err := db.Migrator().CreateTable(&models.Schedule{})
+		if err != nil {
+			return err
+		}
+		fmt.Println("schedule table created")
+	}
+
+	ok = db.Migrator().HasTable(&models.WeekEven{})
+	if !ok {
+		err := db.Migrator().CreateTable(&models.WeekEven{})
+		if err != nil {
+			return err
+		}
+		fmt.Println("weekEven table created")
+	}
+
+	ok = db.Migrator().HasTable(&models.WeekOdd{})
+	if !ok {
+		err := db.Migrator().CreateTable(&models.WeekOdd{})
+		if err != nil {
+			return err
+		}
+		fmt.Println("weekOdd table created")
+	}
+
+	ok = db.Migrator().HasTable(&models.Day{})
+	if !ok {
+		err := db.Migrator().CreateTable(&models.Day{})
+		if err != nil {
+			return err
+		}
+		fmt.Println("day table created")
+	}
+
+	err := db.AutoMigrate(
+		&models.User{},
+		&models.Schedule{},
+		&models.WeekEven{},
+		&models.WeekOdd{},
+		&models.Day{},
+	)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }

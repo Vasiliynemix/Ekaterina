@@ -2,21 +2,38 @@ package schedule
 
 import (
 	"bot/internal/bot/keyboards/inline"
+	"bot/internal/db/models"
 	"bot/pkg/logging"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 	"strings"
 )
 
+const (
+	msgNotExistsDaysForEvenWeek = "😥 Расписание для четной недели пока не добавлено"
+	msgNotExistsDaysForOddWeek  = "😥 Расписание для нечетной недели пока не добавлено"
+)
+
 type RouterSchedule struct {
-	b   *tgbotapi.BotAPI
-	log *logging.Logger
+	b              *tgbotapi.BotAPI
+	log            *logging.Logger
+	scheduleGetter GetterSchedule
 }
 
-func New(b *tgbotapi.BotAPI, log *logging.Logger) *RouterSchedule {
+type GetterSchedule interface {
+	GetScheduleByTelegramID(TelegramID int64) (models.Schedule, error)
+}
+
+func New(
+	b *tgbotapi.BotAPI,
+	log *logging.Logger,
+	scheduleGetter GetterSchedule,
+) *RouterSchedule {
 	return &RouterSchedule{
-		b:   b,
-		log: log,
+		b:              b,
+		log:            log,
+		scheduleGetter: scheduleGetter,
 	}
 }
 
@@ -89,10 +106,32 @@ func (r *RouterSchedule) CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuer
 }
 
 func (r *RouterSchedule) sendMsgWeek(callback *tgbotapi.CallbackQuery, msg string, kb tgbotapi.InlineKeyboardMarkup) {
+	schedule, _ := r.scheduleGetter.GetScheduleByTelegramID(callback.Message.Chat.ID)
+
+	var msgGetDays string
+
+	switch {
+	case callback.Data == inline.DataScheduleWeekEven:
+		if schedule.WeekEven.Days == nil {
+			msgGetDays = msgNotExistsDaysForEvenWeek
+		}
+	case callback.Data == inline.DataScheduleWeekOdd:
+		if schedule.WeekOdd.Days == nil {
+			msgGetDays = msgNotExistsDaysForOddWeek
+		}
+	}
+
+	var msgText string
+	if msgGetDays == "" {
+		msgText = msg
+	} else {
+		msgText = fmt.Sprintf("%s\n\n%s", msg, msgGetDays)
+	}
+
 	msgSend := tgbotapi.NewEditMessageTextAndMarkup(
 		callback.Message.Chat.ID,
 		callback.Message.MessageID,
-		msg,
+		msgText,
 		kb,
 	)
 
