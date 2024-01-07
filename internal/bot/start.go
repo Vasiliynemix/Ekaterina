@@ -48,6 +48,16 @@ type UserRouters interface {
 	ScheduleWeekOdd(callback *tgbotapi.CallbackQuery)
 
 	CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuery) bool
+
+	CheckDayMonday(callback *tgbotapi.CallbackQuery) bool
+	CheckDayTuesday(callback *tgbotapi.CallbackQuery) bool
+	CheckDayWednesday(callback *tgbotapi.CallbackQuery) bool
+	CheckDayThursday(callback *tgbotapi.CallbackQuery) bool
+	CheckDayFriday(callback *tgbotapi.CallbackQuery) bool
+	CheckDaySaturday(callback *tgbotapi.CallbackQuery) bool
+	CheckDaySunday(callback *tgbotapi.CallbackQuery) bool
+
+	ShowDay(callback *tgbotapi.CallbackQuery)
 }
 
 func initRouters(
@@ -121,6 +131,15 @@ func checkUpdates(
 
 		case r.userRouters.CheckScheduleWeekOdd(update.CallbackQuery):
 			go r.userRouters.ScheduleWeekOdd(update.CallbackQuery)
+
+		case r.userRouters.CheckDayMonday(update.CallbackQuery) ||
+			r.userRouters.CheckDayTuesday(update.CallbackQuery) ||
+			r.userRouters.CheckDayWednesday(update.CallbackQuery) ||
+			r.userRouters.CheckDayThursday(update.CallbackQuery) ||
+			r.userRouters.CheckDayFriday(update.CallbackQuery) ||
+			r.userRouters.CheckDaySaturday(update.CallbackQuery) ||
+			r.userRouters.CheckDaySunday(update.CallbackQuery):
+			go r.userRouters.ShowDay(update.CallbackQuery)
 
 		default:
 			continue

@@ -5,6 +5,7 @@ import (
 	"bot/pkg/logging"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"strings"
 )
 
 type RouterSchedule struct {
@@ -98,5 +99,62 @@ func (r *RouterSchedule) sendMsgWeek(callback *tgbotapi.CallbackQuery, msg strin
 	_, err := r.b.Send(msgSend)
 	if err != nil {
 		r.log.Error("Failed to send message", zap.Error(err))
+	}
+}
+
+func (r *RouterSchedule) CheckDayMonday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleMonday)
+}
+
+func (r *RouterSchedule) CheckDayTuesday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleTuesday)
+}
+
+func (r *RouterSchedule) CheckDayWednesday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleWednesday)
+}
+
+func (r *RouterSchedule) CheckDayThursday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleThursday)
+}
+
+func (r *RouterSchedule) CheckDayFriday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleFriday)
+}
+
+func (r *RouterSchedule) CheckDaySaturday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleSaturday)
+}
+
+func (r *RouterSchedule) CheckDaySunday(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleSunday)
+}
+
+func (r *RouterSchedule) ShowDay(callback *tgbotapi.CallbackQuery) {
+	newCallback := tgbotapi.NewCallback(callback.ID, callback.Data)
+	_, err := r.b.Request(newCallback)
+	if err != nil {
+		r.log.Error("Failed to send callback", zap.Error(err))
 	}
 }
