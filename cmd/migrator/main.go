@@ -80,10 +80,10 @@ func runMigrations(db *gorm.DB) error {
 		return err
 	}
 
-	users := getUsers(db)
-	for _, user := range users {
-		_ = addSchedule(db, user.TelegramID)
-	}
+	//users := getUsers(db)
+	//for _, user := range users {
+	//	_ = addSchedule(db, user.TelegramID)
+	//}
 
 	return nil
 }
