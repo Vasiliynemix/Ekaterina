@@ -1,8 +1,8 @@
 package db
 
 import (
-	"bot/internal/db/repositories/sheduleRepo"
-	"bot/internal/db/repositories/userRepo"
+	"bot/internal/storage/db/repositories/sheduleRepo"
+	"bot/internal/storage/db/repositories/userRepo"
 	"bot/pkg/logging"
 	"gorm.io/gorm"
 )

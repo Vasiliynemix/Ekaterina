@@ -10,6 +10,9 @@ const (
 	MsgDataMainMenu = "🏠 Главное меню"
 	DataMainMenu    = "main_menu"
 
+	MsgDataCancel = "❌ Отмена"
+	DataCancel    = "cancel"
+
 	DataBackToWeek = "back_to_week"
 
 	MsgDataScheduleWeekEven = "⚪️ Четная неделя"
@@ -30,6 +33,9 @@ const (
 	MsgDataScheduleSaturday  = "🎈 Суббота"
 	MsgDataScheduleSunday    = "☀️ Воскресенье"
 
+	MsgDataAddScheduleWeek = "🌎 Добавить расписание"
+	DataAddScheduleWeek    = "add_schedule_week"
+
 	DataScheduleMonday    = "monday"
 	DataScheduleTuesday   = "tuesday"
 	DataScheduleWednesday = "wednesday"
@@ -42,6 +48,12 @@ const (
 var (
 	DataScheduleTypeEvenOdd = fmt.Sprintf("%s|%s", DataScheduleTypeFind, config.TypeScheduleEvenOdd)
 	DataScheduleTypeDefault = fmt.Sprintf("%s|%s", DataScheduleTypeFind, config.TypeScheduleDefault)
+)
+
+var CancelKB = tgbotapi.NewInlineKeyboardMarkup(
+	tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(MsgDataCancel, DataCancel),
+	),
 )
 
 var TypeScheduleKB = tgbotapi.NewInlineKeyboardMarkup(
@@ -69,7 +81,7 @@ func ScheduleKB(typeSchedule string) tgbotapi.InlineKeyboardMarkup {
 	case typeSchedule == config.TypeScheduleEvenOdd:
 		return scheduleKBEvenOdd
 	case typeSchedule == config.TypeScheduleDefault:
-		return ScheduleWeekKB(2, typeSchedule)
+		return ScheduleWeekKB(config.WeekEvenAndDefault, typeSchedule)
 	}
 
 	return keyboard
@@ -109,18 +121,28 @@ func ScheduleWeekKB(weekNum int, typeSchedule string) tgbotapi.InlineKeyboardMar
 	}
 
 	var kbBack []tgbotapi.InlineKeyboardButton
+	var kbAddScheduleWeek []tgbotapi.InlineKeyboardButton
 
 	switch {
 	case typeSchedule == config.TypeScheduleEvenOdd:
+		kbAddScheduleWeek = tgbotapi.NewInlineKeyboardRow(
+			createButtonData(MsgDataAddScheduleWeek, DataAddScheduleWeek, weekNum),
+		)
+
 		kbBack = tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(MsgDataBack, DataBackToWeek),
 		)
 	case typeSchedule == config.TypeScheduleDefault:
+		kbAddScheduleWeek = tgbotapi.NewInlineKeyboardRow(
+			createButtonData(MsgDataAddScheduleWeek, DataAddScheduleWeek, weekNum),
+		)
+
 		kbBack = tgbotapi.NewInlineKeyboardRow(
 			tgbotapi.NewInlineKeyboardButtonData(MsgDataBack, DataBackToStartMenu),
 		)
 	}
 
+	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, kbAddScheduleWeek)
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, kbBack)
 
 	kbMainMenu := tgbotapi.NewInlineKeyboardRow(

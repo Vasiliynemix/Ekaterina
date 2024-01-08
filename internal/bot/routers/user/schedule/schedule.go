@@ -3,7 +3,7 @@ package schedule
 import (
 	"bot/internal/bot/keyboards/inline"
 	"bot/internal/config"
-	"bot/internal/db/models"
+	"bot/internal/storage/db/models"
 	"bot/pkg/logging"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -280,5 +280,31 @@ func (r *RouterSchedule) ShowDay(callback *tgbotapi.CallbackQuery) {
 	schedule, ok := r.scheduleGetter.CheckDayNameExistByTelegramID(callback.Message.Chat.ID, dayName, weekNum)
 	if !ok {
 		_ = r.scheduleGetter.AddDay(callback.Message.Chat.ID, schedule, dayName, weekNum)
+	}
+}
+
+func (r *RouterSchedule) CheckAddScheduleWeek(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataAddScheduleWeek)
+}
+
+func (r *RouterSchedule) AddScheduleWeek(callback *tgbotapi.CallbackQuery) {
+	newCallback := tgbotapi.NewCallback(callback.ID, "")
+	_, err := r.b.Request(newCallback)
+	if err != nil {
+		r.log.Error("Failed to send callback", zap.Error(err))
+	}
+
+	msgSend := tgbotapi.NewMessage(
+		callback.Message.Chat.ID,
+		callback.Data,
+	)
+	msgSend.ReplyMarkup = inline.CancelKB
+
+	_, err = r.b.Send(msgSend)
+	if err != nil {
+		r.log.Error("Failed to send message", zap.Error(err))
 	}
 }

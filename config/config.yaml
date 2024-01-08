@@ -18,3 +18,7 @@ db:
     max_idle_conn: 10
     max_open_conn: 30
     idle_timeout: 300s
+
+mongodb:
+  ssl: false
+  auth_source: admin

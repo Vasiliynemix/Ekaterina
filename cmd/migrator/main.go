@@ -2,7 +2,7 @@ package main
 
 import (
 	"bot/internal/config"
-	"bot/internal/db/models"
+	models2 "bot/internal/storage/db/models"
 	"fmt"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -24,45 +24,45 @@ func main() {
 }
 
 func runMigrations(db *gorm.DB) error {
-	ok := db.Migrator().HasTable(&models.User{})
+	ok := db.Migrator().HasTable(&models2.User{})
 	if !ok {
-		err := db.Migrator().CreateTable(&models.User{})
+		err := db.Migrator().CreateTable(&models2.User{})
 		if err != nil {
 			return err
 		}
 		fmt.Println("user table created")
 	}
 
-	ok = db.Migrator().HasTable(&models.Schedule{})
+	ok = db.Migrator().HasTable(&models2.Schedule{})
 	if !ok {
-		err := db.Migrator().CreateTable(&models.Schedule{})
+		err := db.Migrator().CreateTable(&models2.Schedule{})
 		if err != nil {
 			return err
 		}
 		fmt.Println("schedule table created")
 	}
 
-	ok = db.Migrator().HasTable(&models.WeekEven{})
+	ok = db.Migrator().HasTable(&models2.WeekEven{})
 	if !ok {
-		err := db.Migrator().CreateTable(&models.WeekEven{})
+		err := db.Migrator().CreateTable(&models2.WeekEven{})
 		if err != nil {
 			return err
 		}
 		fmt.Println("weekEven table created")
 	}
 
-	ok = db.Migrator().HasTable(&models.WeekOdd{})
+	ok = db.Migrator().HasTable(&models2.WeekOdd{})
 	if !ok {
-		err := db.Migrator().CreateTable(&models.WeekOdd{})
+		err := db.Migrator().CreateTable(&models2.WeekOdd{})
 		if err != nil {
 			return err
 		}
 		fmt.Println("weekOdd table created")
 	}
 
-	ok = db.Migrator().HasTable(&models.Day{})
+	ok = db.Migrator().HasTable(&models2.Day{})
 	if !ok {
-		err := db.Migrator().CreateTable(&models.Day{})
+		err := db.Migrator().CreateTable(&models2.Day{})
 		if err != nil {
 			return err
 		}
@@ -72,11 +72,11 @@ func runMigrations(db *gorm.DB) error {
 	_ = dropColumns(db)
 
 	err := db.AutoMigrate(
-		&models.User{},
-		&models.Schedule{},
-		&models.WeekEven{},
-		&models.WeekOdd{},
-		&models.Day{},
+		&models2.User{},
+		&models2.Schedule{},
+		&models2.WeekEven{},
+		&models2.WeekOdd{},
+		&models2.Day{},
 	)
 	if err != nil {
 		return err
@@ -100,19 +100,19 @@ func dropColumns(db *gorm.DB) error {
 	return nil
 }
 
-func getUsers(db *gorm.DB) []models.User {
-	var users []models.User
+func getUsers(db *gorm.DB) []models2.User {
+	var users []models2.User
 	result := db.Find(&users)
 	if result.Error != nil {
 		fmt.Println("Failed to get users", result.Error)
-		return []models.User{}
+		return []models2.User{}
 	}
 
 	return users
 }
 
 func addSchedule(db *gorm.DB, TelegramID int64) error {
-	newSchedule := models.Schedule{
+	newSchedule := models2.Schedule{
 		TelegramID: TelegramID,
 	}
 
@@ -122,7 +122,7 @@ func addSchedule(db *gorm.DB, TelegramID int64) error {
 		return result.Error
 	}
 
-	newWeekEven := models.WeekEven{
+	newWeekEven := models2.WeekEven{
 		ScheduleID: newSchedule.ID,
 	}
 
@@ -132,7 +132,7 @@ func addSchedule(db *gorm.DB, TelegramID int64) error {
 		return result.Error
 	}
 
-	newWeekOdd := models.WeekOdd{
+	newWeekOdd := models2.WeekOdd{
 		ScheduleID: newSchedule.ID,
 	}
 

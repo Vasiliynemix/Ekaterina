@@ -12,11 +12,12 @@ import (
 )
 
 type Config struct {
-	Env      string       `yaml:"env" env-required:"true"`
-	Debug    bool         `yaml:"debug"`
-	Log      LoggerConfig `yaml:"logger"`
-	Bot      BotConfig    `yaml:"bot"`
-	DB       DBConfig     `yaml:"db"`
+	Env      string        `yaml:"env" env-required:"true"`
+	Debug    bool          `yaml:"debug"`
+	Log      LoggerConfig  `yaml:"logger"`
+	Bot      BotConfig     `yaml:"bot"`
+	DB       DBConfig      `yaml:"db"`
+	MongoDB  MongoDBConfig `yaml:"mongodb"`
 	RootPath string
 	Paths    PathsConfig
 }
@@ -38,6 +39,16 @@ type DBConfig struct {
 	Port             string
 	User             string
 	DbName           string
+}
+
+type MongoDBConfig struct {
+	Ssl        string `yaml:"ssl" env-required:"true"`
+	AuthSource string `yaml:"auth_source" env-required:"true"`
+	Host       string
+	Port       int
+	User       string
+	DbName     string
+	Password   string `json:"-"`
 }
 
 type DBPoolConfig struct {
@@ -73,6 +84,13 @@ func (d *DBConfig) ConnString() string {
 	)
 }
 
+func (md *MongoDBConfig) ConnString() string {
+	return fmt.Sprintf(
+		"mongodb://%s:%d/%s?ssl=%s&authSource=%s",
+		md.Host, md.Port, md.DbName, md.Ssl, md.AuthSource,
+	)
+}
+
 func MustLoad(levelsUp int) *Config {
 	mustLoadEnvConfig()
 
@@ -87,10 +105,16 @@ func MustLoad(levelsUp int) *Config {
 
 	pathToCfg := getPath(rootPath, cfgEnv.Dir, cfgEnv.FileName)
 
-	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot, &cfgEnv.DB)
+	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot, &cfgEnv.DB, &cfgEnv.MongoDB)
 }
 
-func mustLoadCfg(rootPath string, pathToCfg string, botC *EnvBotConfig, db *EnvDBConfig) *Config {
+func mustLoadCfg(
+	rootPath string,
+	pathToCfg string,
+	botC *EnvBotConfig,
+	db *EnvDBConfig,
+	mongoDB *EnvMongoDBConfig,
+) *Config {
 	var cfg Config
 
 	err := cleanenv.ReadConfig(pathToCfg, &cfg)
@@ -109,7 +133,7 @@ func mustLoadCfg(rootPath string, pathToCfg string, botC *EnvBotConfig, db *EnvD
 
 	cfg.Bot.Admins = parseAdmins(cfg.Bot.AdminsStr)
 
-	addEnvInConfig(&cfg, botC, db)
+	addEnvInConfig(&cfg, botC, db, mongoDB)
 
 	return &cfg
 }

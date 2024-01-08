@@ -3,7 +3,8 @@ package main
 import (
 	"bot/internal/bot"
 	"bot/internal/config"
-	"bot/internal/db"
+	"bot/internal/storage/db"
+	"bot/internal/storage/mongodb"
 	"bot/pkg/logging"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
@@ -33,6 +34,12 @@ func main() {
 	}
 
 	b.Debug = cfg.Debug
+
+	mongoClient := mongodb.New(log, &cfg.MongoDB)
+	defer mongoClient.Disconnect()
+	_ = mongoClient.Connect()
+
+	log.Info("MongoDB connected...")
 
 	dbConn := connToDB(cfg, log)
 	setupDBPool(cfg, dbConn)

@@ -2,7 +2,7 @@ package sheduleRepo
 
 import (
 	"bot/internal/config"
-	"bot/internal/db/models"
+	"bot/internal/storage/db/models"
 	"bot/pkg/logging"
 	"fmt"
 	"go.uber.org/zap"

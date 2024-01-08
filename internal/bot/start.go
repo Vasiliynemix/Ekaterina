@@ -6,7 +6,7 @@ import (
 	"bot/internal/bot/routers/start"
 	"bot/internal/bot/routers/user/schedule"
 	"bot/internal/config"
-	"bot/internal/db"
+	"bot/internal/storage/db"
 	"bot/pkg/logging"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -20,7 +20,6 @@ type Routers struct {
 
 type StartRouter interface {
 	CheckMainMenu(callback *tgbotapi.CallbackQuery) bool
-
 	MenuMain(callback *tgbotapi.CallbackQuery, isAdmin bool, isModer bool)
 
 	CheckStartAdmin(msg tgbotapi.Update) bool
@@ -28,6 +27,9 @@ type StartRouter interface {
 
 	CheckStart(msg *tgbotapi.Message) bool
 	Start(msg *tgbotapi.Message, isAdmin bool, isModer bool)
+
+	CheckCancel(callback *tgbotapi.CallbackQuery) bool
+	Cancel(callback *tgbotapi.CallbackQuery)
 }
 
 type AdminRouters interface {
@@ -49,6 +51,9 @@ type UserRouters interface {
 
 	CheckScheduleWeekOdd(callback *tgbotapi.CallbackQuery) bool
 	ScheduleWeekOdd(callback *tgbotapi.CallbackQuery, typeSchedule string)
+
+	CheckAddScheduleWeek(callback *tgbotapi.CallbackQuery) bool
+	AddScheduleWeek(callback *tgbotapi.CallbackQuery)
 
 	CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuery) bool
 
@@ -117,6 +122,9 @@ func checkUpdates(
 		case r.startRouter.CheckMainMenu(update.CallbackQuery):
 			go r.startRouter.MenuMain(update.CallbackQuery, isAdmin, isModer)
 
+		case r.startRouter.CheckCancel(update.CallbackQuery):
+			go r.startRouter.Cancel(update.CallbackQuery)
+
 		case r.adminRouters.CheckAdminPanel(update.CallbackQuery):
 			go r.adminRouters.ShowAdminPanel(update.CallbackQuery)
 
@@ -137,6 +145,9 @@ func checkUpdates(
 
 		case r.userRouters.CheckScheduleWeekOdd(update.CallbackQuery):
 			go r.userRouters.ScheduleWeekOdd(update.CallbackQuery, typeSchedule)
+
+		case r.userRouters.CheckAddScheduleWeek(update.CallbackQuery):
+			go r.userRouters.AddScheduleWeek(update.CallbackQuery)
 
 		case r.userRouters.CheckDayMonday(update.CallbackQuery) ||
 			r.userRouters.CheckDayTuesday(update.CallbackQuery) ||

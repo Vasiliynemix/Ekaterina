@@ -8,6 +8,35 @@ import (
 	"go.uber.org/zap"
 )
 
+func (r *RouterStart) CheckCancel(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+
+	return callback.Data == inline.DataCancel
+}
+
+func (r *RouterStart) Cancel(callback *tgbotapi.CallbackQuery) {
+	newCallback := tgbotapi.NewCallback(callback.ID, inline.MsgDataCancel)
+	_, err := r.b.Request(newCallback)
+	if err != nil {
+		r.log.Error("Failed to send callback", zap.Error(err))
+	}
+
+	deleteMsg := tgbotapi.NewDeleteMessage(callback.Message.Chat.ID, callback.Message.MessageID)
+
+	resp, err := r.b.Request(deleteMsg)
+	if err != nil || !resp.Ok {
+		r.log.Error(
+			"Failed to delete message",
+			zap.Error(err),
+			zap.Bool("ok", resp.Ok),
+			zap.Any("result", resp.Result),
+			zap.Int("message_id", callback.Message.MessageID),
+		)
+	}
+}
+
 func (r *RouterStart) CheckStart(msg *tgbotapi.Message) bool {
 	return msg != nil && msg.Command() == commands.MsgCommandStart
 }

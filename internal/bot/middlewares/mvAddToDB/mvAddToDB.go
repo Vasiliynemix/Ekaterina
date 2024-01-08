@@ -2,7 +2,7 @@ package mvAddToDB
 
 import (
 	"bot/internal/config"
-	"bot/internal/db/repositories/userRepo"
+	"bot/internal/storage/db/repositories/userRepo"
 	"bot/pkg/logging"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"

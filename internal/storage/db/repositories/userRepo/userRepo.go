@@ -1,7 +1,7 @@
 package userRepo
 
 import (
-	"bot/internal/db/models"
+	"bot/internal/storage/db/models"
 	"bot/pkg/logging"
 	"errors"
 	"fmt"

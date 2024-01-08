@@ -4,7 +4,7 @@ import (
 	"bot/internal/bot/middlewares/mvAddToDB"
 	"bot/internal/bot/middlewares/mvLogger"
 	"bot/internal/config"
-	"bot/internal/db"
+	"bot/internal/storage/db"
 	"bot/pkg/logging"
 )
 
