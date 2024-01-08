@@ -28,7 +28,8 @@ type RouterSchedule struct {
 
 type GetterSchedule interface {
 	GetScheduleByTelegramID(TelegramID int64) (models.Schedule, error)
-	AddDay(TelegramID int64, dayName string, weekNum int) error
+	AddDay(TelegramID int64, schedule models.Schedule, dayName string, weekNum int) error
+	CheckDayNameExistByTelegramID(TelegramID int64, dayName string, weekNum int) (models.Schedule, bool)
 }
 
 type UserProvider interface {
@@ -276,5 +277,8 @@ func (r *RouterSchedule) ShowDay(callback *tgbotapi.CallbackQuery) {
 		return
 	}
 
-	_ = r.scheduleGetter.AddDay(callback.Message.Chat.ID, dayName, weekNum)
+	schedule, ok := r.scheduleGetter.CheckDayNameExistByTelegramID(callback.Message.Chat.ID, dayName, weekNum)
+	if !ok {
+		_ = r.scheduleGetter.AddDay(callback.Message.Chat.ID, schedule, dayName, weekNum)
+	}
 }

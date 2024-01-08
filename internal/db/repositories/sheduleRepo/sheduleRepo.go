@@ -1,6 +1,7 @@
 package sheduleRepo
 
 import (
+	"bot/internal/config"
 	"bot/internal/db/models"
 	"bot/pkg/logging"
 	"fmt"
@@ -81,14 +82,12 @@ func (r *ScheduleRepo) GetScheduleByTelegramID(TelegramID int64) (models.Schedul
 	return schedule, nil
 }
 
-func (r *ScheduleRepo) AddDay(TelegramID int64, dayName string, weekNum int) error {
-	schedule, _ := r.GetScheduleByTelegramID(TelegramID)
-
-	err := r.checkDayName(dayName, schedule)
-	if err != nil {
-		return err
-	}
-
+func (r *ScheduleRepo) AddDay(
+	TelegramID int64,
+	schedule models.Schedule,
+	dayName string,
+	weekNum int,
+) error {
 	newDay := models.Day{
 		DayName:    dayName,
 		WeekEvenID: schedule.WeekEven.ID,
@@ -116,18 +115,28 @@ func (r *ScheduleRepo) AddDay(TelegramID int64, dayName string, weekNum int) err
 	return nil
 }
 
-func (r *ScheduleRepo) checkDayName(dayName string, schedule models.Schedule) error {
-	for _, day := range schedule.WeekEven.Days {
-		if day.DayName == dayName {
-			return ErrDayExist
+func (r *ScheduleRepo) CheckDayNameExistByTelegramID(
+	TelegramID int64,
+	dayName string,
+	weekNum int,
+) (models.Schedule, bool) {
+	schedule, _ := r.GetScheduleByTelegramID(TelegramID)
+
+	switch {
+	case weekNum == config.WeekOdd:
+		for _, day := range schedule.WeekOdd.Days {
+			if day.DayName == dayName {
+				return schedule, true
+			}
+		}
+
+	case weekNum == config.WeekEvenAndDefault:
+		for _, day := range schedule.WeekEven.Days {
+			if day.DayName == dayName {
+				return schedule, true
+			}
 		}
 	}
 
-	for _, day := range schedule.WeekOdd.Days {
-		if day.DayName == dayName {
-			return ErrDayExist
-		}
-	}
-
-	return nil
+	return schedule, false
 }
