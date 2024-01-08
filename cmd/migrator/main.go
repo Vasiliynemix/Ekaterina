@@ -69,6 +69,8 @@ func runMigrations(db *gorm.DB) error {
 		fmt.Println("day table created")
 	}
 
+	_ = dropColumns(db)
+
 	err := db.AutoMigrate(
 		&models.User{},
 		&models.Schedule{},
@@ -84,6 +86,16 @@ func runMigrations(db *gorm.DB) error {
 	//for _, user := range users {
 	//	_ = addSchedule(db, user.TelegramID)
 	//}
+
+	return nil
+}
+
+func dropColumns(db *gorm.DB) error {
+	query := "ALTER TABLE days DROP COLUMN IF EXISTS prepod"
+	if err := db.Exec(query).Error; err != nil {
+		fmt.Println("Failed to drop column", err)
+		return err
+	}
 
 	return nil
 }

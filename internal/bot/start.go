@@ -39,13 +39,16 @@ type AdminRouters interface {
 
 type UserRouters interface {
 	CheckSchedule(callback *tgbotapi.CallbackQuery) bool
-	ShowSchedule(callback *tgbotapi.CallbackQuery)
+	ShowSchedule(callback *tgbotapi.CallbackQuery, typeSchedule string)
+
+	CheckTypeSchedule(callback *tgbotapi.CallbackQuery) bool
+	TypeSchedule(callback *tgbotapi.CallbackQuery)
 
 	CheckScheduleWeekEven(callback *tgbotapi.CallbackQuery) bool
-	ScheduleWeekEven(callback *tgbotapi.CallbackQuery)
+	ScheduleWeekEven(callback *tgbotapi.CallbackQuery, typeSchedule string)
 
 	CheckScheduleWeekOdd(callback *tgbotapi.CallbackQuery) bool
-	ScheduleWeekOdd(callback *tgbotapi.CallbackQuery)
+	ScheduleWeekOdd(callback *tgbotapi.CallbackQuery, typeSchedule string)
 
 	CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuery) bool
 
@@ -73,7 +76,7 @@ func initRouters(
 	startRouter := start.New(b, log, &cfg.Bot, db.User)
 	r.startRouter = startRouter
 
-	scheduleRouter := schedule.New(b, log, db.Schedule)
+	scheduleRouter := schedule.New(b, log, db.Schedule, db.User)
 	r.userRouters = UserRouters(scheduleRouter)
 
 	adminRouter := panel.New(b, log)
@@ -102,7 +105,7 @@ func checkUpdates(
 	mv *middlewares.Middlewares,
 ) {
 	for update := range updates {
-		isAdmin, isModer := mv.MvAddToDB.AddToDB(update)
+		isAdmin, isModer, typeSchedule := mv.MvAddToDB.AddToDB(update)
 		mv.MvLog.UpdateInfo(update)
 		switch {
 		case r.startRouter.CheckStartAdmin(update):
@@ -121,16 +124,19 @@ func checkUpdates(
 			go r.startRouter.MenuMain(update.CallbackQuery, isAdmin, isModer)
 
 		case r.userRouters.CheckBackToScheduleMenu(update.CallbackQuery):
-			go r.userRouters.ShowSchedule(update.CallbackQuery)
+			go r.userRouters.ShowSchedule(update.CallbackQuery, typeSchedule)
+
+		case r.userRouters.CheckTypeSchedule(update.CallbackQuery):
+			r.userRouters.TypeSchedule(update.CallbackQuery)
 
 		case r.userRouters.CheckSchedule(update.CallbackQuery):
-			go r.userRouters.ShowSchedule(update.CallbackQuery)
+			go r.userRouters.ShowSchedule(update.CallbackQuery, typeSchedule)
 
 		case r.userRouters.CheckScheduleWeekEven(update.CallbackQuery):
-			go r.userRouters.ScheduleWeekEven(update.CallbackQuery)
+			go r.userRouters.ScheduleWeekEven(update.CallbackQuery, typeSchedule)
 
 		case r.userRouters.CheckScheduleWeekOdd(update.CallbackQuery):
-			go r.userRouters.ScheduleWeekOdd(update.CallbackQuery)
+			go r.userRouters.ScheduleWeekOdd(update.CallbackQuery, typeSchedule)
 
 		case r.userRouters.CheckDayMonday(update.CallbackQuery) ||
 			r.userRouters.CheckDayTuesday(update.CallbackQuery) ||

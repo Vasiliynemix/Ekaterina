@@ -2,38 +2,50 @@ package schedule
 
 import (
 	"bot/internal/bot/keyboards/inline"
+	"bot/internal/config"
 	"bot/internal/db/models"
 	"bot/pkg/logging"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"strconv"
 	"strings"
 )
 
 const (
 	msgNotExistsDaysForEvenWeek = "😥 Расписание для четной недели пока не добавлено"
 	msgNotExistsDaysForOddWeek  = "😥 Расписание для нечетной недели пока не добавлено"
+	msgTypeScheduleNotSelected  = "😥 Я вижу тип раписания не выбран.\n" +
+		"Давай сперва выберем тип для удобства? 😋"
 )
 
 type RouterSchedule struct {
 	b              *tgbotapi.BotAPI
 	log            *logging.Logger
 	scheduleGetter GetterSchedule
+	userProvider   UserProvider
 }
 
 type GetterSchedule interface {
 	GetScheduleByTelegramID(TelegramID int64) (models.Schedule, error)
+	AddDay(TelegramID int64, dayName string, weekNum int) error
+}
+
+type UserProvider interface {
+	UpdateTypeSchedule(TelegramID int64, typeSchedule string) error
 }
 
 func New(
 	b *tgbotapi.BotAPI,
 	log *logging.Logger,
 	scheduleGetter GetterSchedule,
+	userProvider UserProvider,
 ) *RouterSchedule {
 	return &RouterSchedule{
 		b:              b,
 		log:            log,
 		scheduleGetter: scheduleGetter,
+		userProvider:   userProvider,
 	}
 }
 
@@ -44,17 +56,64 @@ func (r *RouterSchedule) CheckSchedule(callback *tgbotapi.CallbackQuery) bool {
 	return callback.Data == inline.DataSchedule
 }
 
-func (r *RouterSchedule) ShowSchedule(callback *tgbotapi.CallbackQuery) {
+func (r *RouterSchedule) CheckTypeSchedule(callback *tgbotapi.CallbackQuery) bool {
+	if callback == nil {
+		return false
+	}
+	return strings.HasPrefix(callback.Data, inline.DataScheduleTypeFind)
+}
+
+func (r *RouterSchedule) TypeSchedule(callback *tgbotapi.CallbackQuery) {
 	newCallback := tgbotapi.NewCallback(callback.ID, "")
 	_, err := r.b.Request(newCallback)
 	if err != nil {
 		r.log.Error("Failed to send callback", zap.Error(err))
 	}
 
+	typeInfo := strings.Split(callback.Data, "|")
+	typeSchedule := typeInfo[1]
+
+	_ = r.userProvider.UpdateTypeSchedule(callback.From.ID, typeSchedule)
+
 	msgSend := tgbotapi.NewEditMessageTextAndMarkup(
 		callback.Message.Chat.ID,
 		callback.Message.MessageID,
-		inline.MsgDataSchedule, inline.ScheduleKB,
+		inline.MsgDataSchedule,
+		inline.ScheduleKB(typeSchedule),
+	)
+
+	_, err = r.b.Send(msgSend)
+	if err != nil {
+		r.log.Error("Failed to send message", zap.Error(err))
+	}
+}
+
+func (r *RouterSchedule) ShowSchedule(callback *tgbotapi.CallbackQuery, typeSchedule string) {
+	newCallback := tgbotapi.NewCallback(callback.ID, "")
+	_, err := r.b.Request(newCallback)
+	if err != nil {
+		r.log.Error("Failed to send callback", zap.Error(err))
+	}
+
+	if typeSchedule == "" {
+		msgSend := tgbotapi.NewEditMessageTextAndMarkup(
+			callback.Message.Chat.ID,
+			callback.Message.MessageID,
+			msgTypeScheduleNotSelected,
+			inline.TypeScheduleKB,
+		)
+		_, err = r.b.Send(msgSend)
+		if err != nil {
+			r.log.Error("Failed to send message", zap.Error(err))
+		}
+		return
+	}
+
+	msgSend := tgbotapi.NewEditMessageTextAndMarkup(
+		callback.Message.Chat.ID,
+		callback.Message.MessageID,
+		inline.MsgDataSchedule,
+		inline.ScheduleKB(typeSchedule),
 	)
 
 	_, err = r.b.Send(msgSend)
@@ -70,15 +129,20 @@ func (r *RouterSchedule) CheckScheduleWeekEven(callback *tgbotapi.CallbackQuery)
 	return callback.Data == inline.DataScheduleWeekEven
 }
 
-func (r *RouterSchedule) ScheduleWeekEven(callback *tgbotapi.CallbackQuery) {
-
+func (r *RouterSchedule) ScheduleWeekEven(callback *tgbotapi.CallbackQuery,
+	typeSchedule string,
+) {
 	newCallback := tgbotapi.NewCallback(callback.ID, "")
 	_, err := r.b.Request(newCallback)
 	if err != nil {
 		r.log.Error("Failed to send callback", zap.Error(err))
 	}
 
-	r.sendMsgWeek(callback, inline.MsgDataScheduleWeekEven, inline.ScheduleWeekKB(2))
+	r.sendMsgWeek(
+		callback,
+		inline.MsgDataScheduleWeekEven,
+		inline.ScheduleWeekKB(config.WeekEvenAndDefault, typeSchedule),
+	)
 }
 
 func (r *RouterSchedule) CheckScheduleWeekOdd(callback *tgbotapi.CallbackQuery) bool {
@@ -88,14 +152,20 @@ func (r *RouterSchedule) CheckScheduleWeekOdd(callback *tgbotapi.CallbackQuery) 
 	return callback.Data == inline.DataScheduleWeekOdd
 }
 
-func (r *RouterSchedule) ScheduleWeekOdd(callback *tgbotapi.CallbackQuery) {
+func (r *RouterSchedule) ScheduleWeekOdd(callback *tgbotapi.CallbackQuery,
+	typeSchedule string,
+) {
 	newCallback := tgbotapi.NewCallback(callback.ID, "")
 	_, err := r.b.Request(newCallback)
 	if err != nil {
 		r.log.Error("Failed to send callback", zap.Error(err))
 	}
 
-	r.sendMsgWeek(callback, inline.MsgDataScheduleWeekOdd, inline.ScheduleWeekKB(1))
+	r.sendMsgWeek(
+		callback,
+		inline.MsgDataScheduleWeekOdd,
+		inline.ScheduleWeekKB(config.WeekOdd, typeSchedule),
+	)
 }
 
 func (r *RouterSchedule) CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuery) bool {
@@ -196,4 +266,15 @@ func (r *RouterSchedule) ShowDay(callback *tgbotapi.CallbackQuery) {
 	if err != nil {
 		r.log.Error("Failed to send callback", zap.Error(err))
 	}
+
+	dayInfo := strings.Split(callback.Data, "|")
+
+	dayName := dayInfo[0]
+	weekNum, err := strconv.Atoi(dayInfo[1])
+	if err != nil {
+		r.log.Error("Failed to convert week number", zap.Error(err))
+		return
+	}
+
+	_ = r.scheduleGetter.AddDay(callback.Message.Chat.ID, dayName, weekNum)
 }

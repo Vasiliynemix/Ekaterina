@@ -78,11 +78,27 @@ func (r *UserRepo) GetUserByTgID(telegramID int64) (*UserShow, error) {
 	}
 
 	userShow := UserShow{
-		TelegramID: userFind.TelegramID,
-		UserName:   userFind.UserName,
-		IsAdmin:    userFind.IsAdmin,
-		IsModer:    userFind.IsModer,
+		TelegramID:   userFind.TelegramID,
+		UserName:     userFind.UserName,
+		IsAdmin:      userFind.IsAdmin,
+		IsModer:      userFind.IsModer,
+		TypeSchedule: userFind.TypeSchedule,
 	}
 
 	return &userShow, nil
+}
+
+func (r *UserRepo) UpdateTypeSchedule(TelegramID int64, typeSchedule string) error {
+	result := r.db.Model(&models.User{}).
+		Where("telegram_id = ?", TelegramID).
+		Update("type_schedule", typeSchedule)
+	if result.Error != nil {
+		r.log.Error("Failed to update type schedule", zap.Error(result.Error))
+
+		return result.Error
+	}
+
+	r.log.Info("Type schedule updated", zap.Int64("telegramID", TelegramID), zap.String("typeSchedule", typeSchedule))
+
+	return nil
 }

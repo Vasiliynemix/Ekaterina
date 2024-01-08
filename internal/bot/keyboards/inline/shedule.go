@@ -1,6 +1,7 @@
 package inline
 
 import (
+	"bot/internal/config"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 )
@@ -12,12 +13,16 @@ const (
 	DataBackToWeek = "back_to_week"
 
 	MsgDataScheduleWeekEven = "⚪️ Четная неделя"
-	MsgDataScheduleWeekOdd  = "⚫️ Нечетная неделя"
+	DataScheduleWeekEven    = "week_even"
 
-	DataScheduleWeekEven = "week_even"
-	DataScheduleWeekOdd  = "week_odd"
+	MsgDataScheduleWeekOdd = "⚫️ Нечетная неделя"
+	DataScheduleWeekOdd    = "week_odd"
 
-	MsgDataScheduleMonday    = "📅 Понедельник"
+	MsgDataScheduleTypeEvenOdd = "🤔 Четное, нечетное расписание"
+	MsgDataScheduleTypeDefault = "🤔 Еженедельное расписание"
+	DataScheduleTypeFind       = "type_schedule"
+
+	MsgDataScheduleMonday    = "📚 Понедельник"
 	MsgDataScheduleTuesday   = "🌟 Вторник"
 	MsgDataScheduleWednesday = "🍃 Среда"
 	MsgDataScheduleThursday  = "📚 Четверг"
@@ -34,25 +39,43 @@ const (
 	DataScheduleSunday    = "sunday"
 )
 
-var ScheduleKB = tgbotapi.NewInlineKeyboardMarkup(
+var (
+	DataScheduleTypeEvenOdd = fmt.Sprintf("%s|%s", DataScheduleTypeFind, config.TypeScheduleEvenOdd)
+	DataScheduleTypeDefault = fmt.Sprintf("%s|%s", DataScheduleTypeFind, config.TypeScheduleDefault)
+)
+
+var TypeScheduleKB = tgbotapi.NewInlineKeyboardMarkup(
+	tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(MsgDataScheduleTypeDefault, DataScheduleTypeDefault),
+	),
+	tgbotapi.NewInlineKeyboardRow(
+		tgbotapi.NewInlineKeyboardButtonData(MsgDataScheduleTypeEvenOdd, DataScheduleTypeEvenOdd),
+	),
+)
+
+var scheduleKBEvenOdd = tgbotapi.NewInlineKeyboardMarkup(
 	tgbotapi.NewInlineKeyboardRow(
 		tgbotapi.NewInlineKeyboardButtonData(MsgDataScheduleWeekEven, DataScheduleWeekEven),
 		tgbotapi.NewInlineKeyboardButtonData(MsgDataScheduleWeekOdd, DataScheduleWeekOdd),
 	),
-
 	tgbotapi.NewInlineKeyboardRow(
 		tgbotapi.NewInlineKeyboardButtonData(MsgDataBack, DataBackToStartMenu),
 	),
 )
 
-func createButtonData(msg, data string, weekNum int) tgbotapi.InlineKeyboardButton {
-	return tgbotapi.NewInlineKeyboardButtonData(
-		msg,
-		fmt.Sprintf("%s|%d", data, weekNum),
-	)
+func ScheduleKB(typeSchedule string) tgbotapi.InlineKeyboardMarkup {
+	keyboard := tgbotapi.NewInlineKeyboardMarkup()
+	switch {
+	case typeSchedule == config.TypeScheduleEvenOdd:
+		return scheduleKBEvenOdd
+	case typeSchedule == config.TypeScheduleDefault:
+		return ScheduleWeekKB(2, typeSchedule)
+	}
+
+	return keyboard
 }
 
-func ScheduleWeekKB(weekNum int) tgbotapi.InlineKeyboardMarkup {
+func ScheduleWeekKB(weekNum int, typeSchedule string) tgbotapi.InlineKeyboardMarkup {
 	keyboard := tgbotapi.NewInlineKeyboardMarkup()
 
 	days := []struct {
@@ -85,9 +108,18 @@ func ScheduleWeekKB(weekNum int) tgbotapi.InlineKeyboardMarkup {
 		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, row)
 	}
 
-	kbBack := tgbotapi.NewInlineKeyboardRow(
-		tgbotapi.NewInlineKeyboardButtonData(MsgDataBack, DataBackToWeek),
-	)
+	var kbBack []tgbotapi.InlineKeyboardButton
+
+	switch {
+	case typeSchedule == config.TypeScheduleEvenOdd:
+		kbBack = tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(MsgDataBack, DataBackToWeek),
+		)
+	case typeSchedule == config.TypeScheduleDefault:
+		kbBack = tgbotapi.NewInlineKeyboardRow(
+			tgbotapi.NewInlineKeyboardButtonData(MsgDataBack, DataBackToStartMenu),
+		)
+	}
 
 	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, kbBack)
 
@@ -95,7 +127,16 @@ func ScheduleWeekKB(weekNum int) tgbotapi.InlineKeyboardMarkup {
 		tgbotapi.NewInlineKeyboardButtonData(MsgDataMainMenu, DataMainMenu),
 	)
 
-	keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, kbMainMenu)
+	if typeSchedule != config.TypeScheduleDefault {
+		keyboard.InlineKeyboard = append(keyboard.InlineKeyboard, kbMainMenu)
+	}
 
 	return keyboard
+}
+
+func createButtonData(msg, data string, weekNum int) tgbotapi.InlineKeyboardButton {
+	return tgbotapi.NewInlineKeyboardButtonData(
+		msg,
+		fmt.Sprintf("%s|%d", data, weekNum),
+	)
 }

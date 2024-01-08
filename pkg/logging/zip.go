@@ -140,12 +140,12 @@ func createZipFile(sourceFilePath, zipFilePath string) error {
 		_ = sourceFile.Close()
 	}(sourceFile)
 
-	info, err := sourceFile.Stat()
+	fileInfo, err := sourceFile.Stat()
 	if err != nil {
 		return err
 	}
 
-	header, err := zip.FileInfoHeader(info)
+	header, err := zip.FileInfoHeader(fileInfo)
 	if err != nil {
 		return err
 	}

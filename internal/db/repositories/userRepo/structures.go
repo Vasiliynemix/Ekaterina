@@ -8,8 +8,9 @@ type UserAddParams struct {
 }
 
 type UserShow struct {
-	TelegramID int64
-	UserName   string
-	IsAdmin    bool
-	IsModer    bool
+	TelegramID   int64
+	UserName     string
+	IsAdmin      bool
+	IsModer      bool
+	TypeSchedule string
 }
