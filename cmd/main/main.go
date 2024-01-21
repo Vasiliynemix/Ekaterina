@@ -4,9 +4,12 @@ import (
 	"bot/internal/bot"
 	"bot/internal/config"
 	"bot/internal/storage/db"
-	"bot/internal/storage/mongodb"
+	"bot/internal/storage/redisdb"
 	"bot/pkg/logging"
+	"context"
+	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
+	"github.com/redis/go-redis/v9"
 	"go.uber.org/zap"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
@@ -24,7 +27,6 @@ func main() {
 
 	log := setupLogger(cfg.Env, config.StructDateFormat, cfg.Paths.ConfigInfoPath, cfg.Paths.ConfigDebugPath)
 
-	log.Debug("config: ", zap.Any("config", cfg))
 	log.Info("Initializing logger and config...")
 	log.Debug("Debug mode on...")
 
@@ -35,18 +37,27 @@ func main() {
 
 	b.Debug = cfg.Debug
 
-	mongoClient := mongodb.New(log, &cfg.MongoDB)
-	defer mongoClient.Disconnect()
-	_ = mongoClient.Connect()
-
-	log.Info("MongoDB connected...")
-
 	dbConn := connToDB(cfg, log)
 	setupDBPool(cfg, dbConn)
 
+	log.Info("RedisDB connected...")
+
+	rdb := redis.NewClient(&redis.Options{
+		Addr:     fmt.Sprintf("%s:%s", cfg.RedisDB.Host, cfg.RedisDB.Port),
+		Password: "",
+		DB:       cfg.RedisDB.DB,
+	})
+
+	_, err = rdb.Ping(context.Background()).Result()
+	if err != nil {
+		panic(err)
+	}
+
+	redisClient := redisdb.New(rdb, log, cfg)
+
 	dbClient := db.New(dbConn, log)
 
-	go bot.Run(b, cfg, log, dbClient)
+	go bot.Run(b, cfg, log, dbClient, redisClient)
 
 	// Gracefully shutdown
 	stop := make(chan os.Signal, 1)

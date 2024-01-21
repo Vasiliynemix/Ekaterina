@@ -4,6 +4,7 @@ import (
 	"bot/internal/bot/keyboards/inline"
 	"bot/internal/bot/lexicon/commands"
 	"bot/internal/bot/lexicon/messages"
+	"bot/internal/config"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -26,6 +27,7 @@ func (r *RouterStart) CheckStartAdmin(msg tgbotapi.Update) bool {
 }
 
 func (r *RouterStart) StartAdmin(msg *tgbotapi.Message) {
+	_ = r.stateCleaner.ClearState(msg.Chat.ID, config.ScheduleState)
 	userShow, _ := r.userGetter.GetUserByTgID(msg.Chat.ID)
 
 	msgSend := tgbotapi.NewMessage(msg.Chat.ID, messages.MessageStartAdmin)

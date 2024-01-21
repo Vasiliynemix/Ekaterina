@@ -39,7 +39,7 @@ func New(
 	}
 }
 
-func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) (bool, bool, string) {
+func (l *AddToDBMv) AddAndGetUserToDB(msg tgbotapi.Update) (bool, bool, string) {
 	var telegramID int64
 	var userName string
 
@@ -80,7 +80,7 @@ func (l *AddToDBMv) AddToDB(msg tgbotapi.Update) (bool, bool, string) {
 
 	_ = l.scheduleSaver.AddSchedule(telegramID)
 
-	l.log.Info("User added to DB", zap.Uint("telegramID", uint(telegramID)))
+	l.log.Info("User added to DB and", zap.Uint("telegramID", uint(telegramID)))
 
 	return userShow.IsAdmin, userShow.IsModer, userShow.TypeSchedule
 }

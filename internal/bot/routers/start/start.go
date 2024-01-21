@@ -8,14 +8,19 @@ import (
 )
 
 type RouterStart struct {
-	b          *tgbotapi.BotAPI
-	log        *logging.Logger
-	cfg        *config.BotConfig
-	userGetter UserGetter
+	b            *tgbotapi.BotAPI
+	log          *logging.Logger
+	cfg          *config.BotConfig
+	userGetter   UserGetter
+	stateCleaner StateCleaner
 }
 
 type UserGetter interface {
 	GetUserByTgID(telegramID int64) (*userRepo.UserShow, error)
+}
+
+type StateCleaner interface {
+	ClearState(telegramID int64, stateName string) error
 }
 
 func New(
@@ -23,11 +28,13 @@ func New(
 	log *logging.Logger,
 	cfg *config.BotConfig,
 	userGetter UserGetter,
+	stateCleaner StateCleaner,
 ) *RouterStart {
 	return &RouterStart{
-		b:          b,
-		log:        log,
-		cfg:        cfg,
-		userGetter: userGetter,
+		b:            b,
+		log:          log,
+		cfg:          cfg,
+		userGetter:   userGetter,
+		stateCleaner: stateCleaner,
 	}
 }

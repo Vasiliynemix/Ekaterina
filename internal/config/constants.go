@@ -8,4 +8,6 @@ const (
 
 	WeekEvenAndDefault = 2
 	WeekOdd            = 1
+
+	ScheduleState = "schedule_state"
 )

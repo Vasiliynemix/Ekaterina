@@ -7,6 +7,7 @@ import (
 	"bot/internal/bot/routers/user/schedule"
 	"bot/internal/config"
 	"bot/internal/storage/db"
+	"bot/internal/storage/redisdb"
 	"bot/pkg/logging"
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
@@ -55,6 +56,9 @@ type UserRouters interface {
 	CheckAddScheduleWeek(callback *tgbotapi.CallbackQuery) bool
 	AddScheduleWeek(callback *tgbotapi.CallbackQuery)
 
+	CheckStateSchedule(stateSchedule map[string]interface{}, msg *tgbotapi.Message) bool
+	FileScheduleWeek(stateSchedule map[string]interface{}, typeSchedule string, msg *tgbotapi.Message)
+
 	CheckBackToScheduleMenu(callback *tgbotapi.CallbackQuery) bool
 
 	CheckDayMonday(callback *tgbotapi.CallbackQuery) bool
@@ -73,15 +77,16 @@ func initRouters(
 	log *logging.Logger,
 	cfg *config.Config,
 	db *db.DB,
+	redis *redisdb.RedisDB,
 ) Routers {
 	log.Info("Initializing routers...")
 
 	var r Routers
 
-	startRouter := start.New(b, log, &cfg.Bot, db.User)
+	startRouter := start.New(b, log, &cfg.Bot, db.User, redis)
 	r.startRouter = startRouter
 
-	scheduleRouter := schedule.New(b, log, db.Schedule, db.User)
+	scheduleRouter := schedule.New(b, log, cfg, db.Schedule, db.User, redis)
 	r.userRouters = UserRouters(scheduleRouter)
 
 	adminRouter := panel.New(b, log)
@@ -90,16 +95,16 @@ func initRouters(
 	return r
 }
 
-func Run(b *tgbotapi.BotAPI, cfg *config.Config, log *logging.Logger, db *db.DB) {
+func Run(b *tgbotapi.BotAPI, cfg *config.Config, log *logging.Logger, db *db.DB, redis *redisdb.RedisDB) {
 	u := setupUpdateConfig(cfg.Bot)
 
 	updates := b.GetUpdatesChan(u)
 
 	log.Info(fmt.Sprintf("Authorized on account bot %s", b.Self.UserName))
 
-	r := initRouters(b, log, cfg, db)
+	r := initRouters(b, log, cfg, db, redis)
 
-	mv := middlewares.InitMiddlewares(log, db, cfg)
+	mv := middlewares.InitMiddlewares(log, db, cfg, redis)
 
 	go checkUpdates(updates, r, mv)
 }
@@ -110,7 +115,8 @@ func checkUpdates(
 	mv *middlewares.Middlewares,
 ) {
 	for update := range updates {
-		isAdmin, isModer, typeSchedule := mv.MvAddToDB.AddToDB(update)
+		isAdmin, isModer, typeSchedule := mv.MvAddToDB.AddAndGetUserToDB(update)
+		userState := mv.MvGetState.UserState(update)
 		mv.MvLog.UpdateInfo(update)
 		switch {
 		case r.startRouter.CheckStartAdmin(update):
@@ -148,6 +154,9 @@ func checkUpdates(
 
 		case r.userRouters.CheckAddScheduleWeek(update.CallbackQuery):
 			go r.userRouters.AddScheduleWeek(update.CallbackQuery)
+
+		case r.userRouters.CheckStateSchedule(userState, update.Message):
+			go r.userRouters.FileScheduleWeek(userState, typeSchedule, update.Message)
 
 		case r.userRouters.CheckDayMonday(update.CallbackQuery) ||
 			r.userRouters.CheckDayTuesday(update.CallbackQuery) ||

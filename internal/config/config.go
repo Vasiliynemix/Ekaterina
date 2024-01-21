@@ -12,12 +12,12 @@ import (
 )
 
 type Config struct {
-	Env      string        `yaml:"env" env-required:"true"`
-	Debug    bool          `yaml:"debug"`
-	Log      LoggerConfig  `yaml:"logger"`
-	Bot      BotConfig     `yaml:"bot"`
-	DB       DBConfig      `yaml:"db"`
-	MongoDB  MongoDBConfig `yaml:"mongodb"`
+	Env      string       `yaml:"env" env-required:"true"`
+	Debug    bool         `yaml:"debug"`
+	Log      LoggerConfig `yaml:"logger"`
+	Bot      BotConfig    `yaml:"bot"`
+	DB       DBConfig     `yaml:"db"`
+	RedisDB  RedisDBConfig
 	RootPath string
 	Paths    PathsConfig
 }
@@ -41,14 +41,10 @@ type DBConfig struct {
 	DbName           string
 }
 
-type MongoDBConfig struct {
-	Ssl        string `yaml:"ssl" env-required:"true"`
-	AuthSource string `yaml:"auth_source" env-required:"true"`
-	Host       string
-	Port       int
-	User       string
-	DbName     string
-	Password   string `json:"-"`
+type RedisDBConfig struct {
+	Host string
+	Port string
+	DB   int
 }
 
 type DBPoolConfig struct {
@@ -84,13 +80,6 @@ func (d *DBConfig) ConnString() string {
 	)
 }
 
-func (md *MongoDBConfig) ConnString() string {
-	return fmt.Sprintf(
-		"mongodb://%s:%d/%s?ssl=%s&authSource=%s",
-		md.Host, md.Port, md.DbName, md.Ssl, md.AuthSource,
-	)
-}
-
 func MustLoad(levelsUp int) *Config {
 	mustLoadEnvConfig()
 
@@ -105,7 +94,7 @@ func MustLoad(levelsUp int) *Config {
 
 	pathToCfg := getPath(rootPath, cfgEnv.Dir, cfgEnv.FileName)
 
-	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot, &cfgEnv.DB, &cfgEnv.MongoDB)
+	return mustLoadCfg(rootPath, pathToCfg, &cfgEnv.Bot, &cfgEnv.DB, &cfgEnv.RedisDB)
 }
 
 func mustLoadCfg(
@@ -113,7 +102,7 @@ func mustLoadCfg(
 	pathToCfg string,
 	botC *EnvBotConfig,
 	db *EnvDBConfig,
-	mongoDB *EnvMongoDBConfig,
+	redisDB *EnvRedisConfig,
 ) *Config {
 	var cfg Config
 
@@ -133,7 +122,7 @@ func mustLoadCfg(
 
 	cfg.Bot.Admins = parseAdmins(cfg.Bot.AdminsStr)
 
-	addEnvInConfig(&cfg, botC, db, mongoDB)
+	addEnvInConfig(&cfg, botC, db, redisDB)
 
 	return &cfg
 }

@@ -4,6 +4,7 @@ import (
 	"bot/internal/bot/keyboards/inline"
 	"bot/internal/bot/lexicon/commands"
 	"bot/internal/bot/lexicon/messages"
+	"bot/internal/config"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
 )
@@ -17,6 +18,7 @@ func (r *RouterStart) CheckCancel(callback *tgbotapi.CallbackQuery) bool {
 }
 
 func (r *RouterStart) Cancel(callback *tgbotapi.CallbackQuery) {
+	_ = r.stateCleaner.ClearState(callback.Message.Chat.ID, config.ScheduleState)
 	newCallback := tgbotapi.NewCallback(callback.ID, inline.MsgDataCancel)
 	_, err := r.b.Request(newCallback)
 	if err != nil {
@@ -42,6 +44,7 @@ func (r *RouterStart) CheckStart(msg *tgbotapi.Message) bool {
 }
 
 func (r *RouterStart) Start(msg *tgbotapi.Message, isAdmin bool, isModer bool) {
+	_ = r.stateCleaner.ClearState(msg.Chat.ID, config.ScheduleState)
 	msgSend := tgbotapi.NewMessage(msg.Chat.ID, messages.MessageStartUser)
 	msgSend.ReplyMarkup = inline.StartKB(isAdmin, isModer)
 
@@ -61,6 +64,7 @@ func (r *RouterStart) CheckMainMenu(callback *tgbotapi.CallbackQuery) bool {
 
 func (r *RouterStart) MenuMain(callback *tgbotapi.CallbackQuery, isAdmin bool, isModer bool) {
 	var msgText string
+	_ = r.stateCleaner.ClearState(callback.Message.Chat.ID, config.ScheduleState)
 
 	if isAdmin || isModer {
 		msgText = messages.MessageStartAdmin

@@ -9,7 +9,7 @@ type EnvConfig struct {
 	FileName string `env:"CFG_FILENAME" env-required:"true"`
 	Bot      EnvBotConfig
 	DB       EnvDBConfig
-	MongoDB  EnvMongoDBConfig
+	RedisDB  EnvRedisConfig
 }
 
 type EnvDBConfig struct {
@@ -20,12 +20,10 @@ type EnvDBConfig struct {
 	Pass string `env:"DB_PASSWORD" env-required:"true" json:"-"`
 }
 
-type EnvMongoDBConfig struct {
-	Host string `env:"MONGO_HOST" env-required:"true"`
-	Port int    `env:"MONGO_PORT" env-required:"true"`
-	User string `env:"MONGO_USER" env-required:"true"`
-	Name string `env:"MONGO_NAME" env-required:"true"`
-	Pass string `env:"MONGO_PASSWORD" env-required:"true" json:"-"`
+type EnvRedisConfig struct {
+	Host string `env:"REDIS_HOST" env-required:"true"`
+	Port string `env:"REDIS_PORT" env-required:"true"`
+	Name int    `env:"REDIS_DB" env-required:"true"`
 }
 
 type EnvBotConfig struct {
@@ -39,7 +37,7 @@ func mustLoadEnvConfig() {
 	}
 }
 
-func addEnvInConfig(cfg *Config, botC *EnvBotConfig, db *EnvDBConfig, mongoDB *EnvMongoDBConfig) {
+func addEnvInConfig(cfg *Config, botC *EnvBotConfig, db *EnvDBConfig, redisDB *EnvRedisConfig) {
 	cfg.Bot.Token = botC.Token
 
 	cfg.DB.Host = db.Host
@@ -48,9 +46,7 @@ func addEnvInConfig(cfg *Config, botC *EnvBotConfig, db *EnvDBConfig, mongoDB *E
 	cfg.DB.DbName = db.Name
 	cfg.DB.Password = db.Pass
 
-	cfg.MongoDB.Host = mongoDB.Host
-	cfg.MongoDB.Port = mongoDB.Port
-	cfg.MongoDB.User = mongoDB.User
-	cfg.MongoDB.DbName = mongoDB.Name
-	cfg.MongoDB.Password = mongoDB.Pass
+	cfg.RedisDB.Host = redisDB.Host
+	cfg.RedisDB.Port = redisDB.Port
+	cfg.RedisDB.DB = redisDB.Name
 }

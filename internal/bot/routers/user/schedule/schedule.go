@@ -8,6 +8,9 @@ import (
 	"fmt"
 	tgbotapi "github.com/go-telegram-bot-api/telegram-bot-api/v5"
 	"go.uber.org/zap"
+	"io"
+	"net/http"
+	"os"
 	"strconv"
 	"strings"
 )
@@ -22,8 +25,10 @@ const (
 type RouterSchedule struct {
 	b              *tgbotapi.BotAPI
 	log            *logging.Logger
+	cfg            *config.Config
 	scheduleGetter GetterSchedule
 	userProvider   UserProvider
+	stateProvider  StateProvider
 }
 
 type GetterSchedule interface {
@@ -36,17 +41,28 @@ type UserProvider interface {
 	UpdateTypeSchedule(TelegramID int64, typeSchedule string) error
 }
 
+type StateProvider interface {
+	ClearState(telegramID int64, stateName string) error
+	SetState(telegramID int64, stateName string, stateData *map[string]interface{}) error
+	GetState(telegramID int64, stateName string) (map[string]interface{}, error)
+	UpdateState(telegramID int64, stateName string, fieldName string, fieldValue interface{}) error
+}
+
 func New(
 	b *tgbotapi.BotAPI,
 	log *logging.Logger,
+	cfg *config.Config,
 	scheduleGetter GetterSchedule,
 	userProvider UserProvider,
+	stateProvider StateProvider,
 ) *RouterSchedule {
 	return &RouterSchedule{
 		b:              b,
 		log:            log,
+		cfg:            cfg,
 		scheduleGetter: scheduleGetter,
 		userProvider:   userProvider,
+		stateProvider:  stateProvider,
 	}
 }
 
@@ -299,12 +315,104 @@ func (r *RouterSchedule) AddScheduleWeek(callback *tgbotapi.CallbackQuery) {
 
 	msgSend := tgbotapi.NewMessage(
 		callback.Message.Chat.ID,
-		callback.Data,
+		"Добавь файл с расписанием на неделю.",
 	)
 	msgSend.ReplyMarkup = inline.CancelKB
+
+	msg, err := r.b.Send(msgSend)
+	if err != nil {
+		r.log.Error("Failed to send message", zap.Error(err))
+	}
+
+	startState := map[string]interface{}{
+		"msg_old_id": callback.Message.MessageID,
+		"msg_new_id": msg.MessageID,
+	}
+
+	_ = r.stateProvider.SetState(callback.Message.Chat.ID, config.ScheduleState, &startState)
+}
+
+func (r *RouterSchedule) CheckStateSchedule(stateSchedule map[string]interface{}, msg *tgbotapi.Message) bool {
+	if stateSchedule == nil {
+		return false
+	}
+	if msg.Document == nil {
+		return false
+	}
+	return true
+}
+
+func (r *RouterSchedule) FileScheduleWeek(stateSchedule map[string]interface{}, typeSchedule string, msg *tgbotapi.Message) {
+	file, err := r.b.GetFile(tgbotapi.FileConfig{FileID: msg.Document.FileID})
+	if err != nil {
+		r.log.Error("Failed to get file", zap.Error(err))
+		return
+	}
+
+	fileURL := fmt.Sprintf("https://api.telegram.org/file/bot%s/%s", r.cfg.Bot.Token, file.FilePath)
+
+	fileName := "schedule.pdf"
+
+	err = downloadFile(r.log, fileURL, fileName)
+	if err != nil {
+		return
+	}
+
+	msgOldID := int(stateSchedule["msg_old_id"].(float64))
+	msgNewID := int(stateSchedule["msg_new_id"].(float64))
+	r.deleteMsg(msg.Chat.ID, msgNewID)
+	r.deleteMsg(msg.Chat.ID, msgOldID)
+
+	msgSend := tgbotapi.NewMessage(
+		msg.Chat.ID,
+		inline.MsgDataSchedule,
+	)
+	msgSend.ReplyMarkup = inline.ScheduleKB(typeSchedule)
 
 	_, err = r.b.Send(msgSend)
 	if err != nil {
 		r.log.Error("Failed to send message", zap.Error(err))
 	}
+
+	_ = r.stateProvider.ClearState(msg.Chat.ID, config.ScheduleState)
+}
+
+func downloadFile(log *logging.Logger, url, fileName string) error {
+	response, err := http.Get(url)
+	if err != nil {
+		return err
+	}
+	defer response.Body.Close()
+
+	file, err := os.Create(fileName)
+	if err != nil {
+		log.Error("Failed to create file", zap.Error(err))
+		return err
+	}
+	defer file.Close()
+
+	_, err = io.Copy(file, response.Body)
+	if err != nil {
+		log.Error("Failed to copy file", zap.Error(err))
+		return err
+	}
+
+	return nil
+}
+
+func (r *RouterSchedule) removeReplyMarkup(chatID int64, msgID int) {
+	emptyKeyboard := tgbotapi.InlineKeyboardMarkup{
+		InlineKeyboard: [][]tgbotapi.InlineKeyboardButton{},
+	}
+
+	editMsg := tgbotapi.NewEditMessageReplyMarkup(chatID, msgID, emptyKeyboard)
+	_, err := r.b.Send(editMsg)
+	if err != nil {
+		r.log.Error("Failed to send message", zap.Error(err))
+	}
+}
+
+func (r *RouterSchedule) deleteMsg(chatID int64, msgID int) {
+	deleteMsg := tgbotapi.NewDeleteMessage(chatID, msgID)
+	_, _ = r.b.Send(deleteMsg)
 }
